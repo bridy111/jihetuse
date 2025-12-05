@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>几何图形涂色 - 减压涂鸦游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "微软雅黑", sans-serif;
+        }
+
+        body {
+            background-color: #f5f7fa;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .game-container {
+            max-width: 900px;
+            width: 100%;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            padding: 25px;
+        }
+
+        .title {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 32px;
+        }
+
+        /* 计时器样式 */
+        .timer {
+            text-align: center;
+            font-size: 20px;
+            color: #e74c3c;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        /* 图形选择器样式 */
+        .shape-selector {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .shape-btn {
+            padding: 8px 14px;
+            background-color: #ffffff;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+
+        .shape-btn.active {
+            background-color: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+
+        .shape-btn:hover {
+            background-color: #e8f4fd;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        /* 颜色选择器样式 */
+        .color-palette {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            max-width: 600px;
+        }
+
+        .color-btn {
+            width: 40px;
+            height: 40px;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .color-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .color-btn.active {
+            outline: 3px solid #333;
+            outline-offset: 2px;
+        }
+
+        /* 工具按钮组 */
+        .tool-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .eraser-btn, .restart-btn {
+            padding: 8px 18px;
+            background-color: #95a5a6;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        .eraser-btn.active {
+            background-color: #7f8c8d;
+        }
+
+        .eraser-btn:hover {
+            background-color: #8e9e9f;
+        }
+
+        .restart-btn {
+            background-color: #e74c3c;
+        }
+
+        .restart-btn:hover {
+            background-color: #c0392b;
+        }
+
+        .brush-size {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .brush-size label {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .brush-size input {
+            width: 80px;
+        }
+
+        .canvas-container {
+            width: 100%;
+            height: 550px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            background-color: #fff;
+            margin-bottom: 15px;
+        }
+
+        #coloringCanvas {
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+        }
+
+        .hint {
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+        }
+
+        /* 模态框样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+
+        .modal h2 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 24px;
+        }
+
+        .modal p {
+            color: #666;
+            margin-bottom: 25px;
+            font-size: 16px;
+        }
+
+        .modal-btn {
+            padding: 10px 25px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.2s;
+        }
+
+        .modal-btn:hover {
+            background-color: #2980b9;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1 class="title">几何图形涂色 🎨</h1>
+        
+        <!-- 计时器 -->
+        <div class="timer" id="timer">剩余时间：05:00</div>
+        
+        <!-- 图形选择器 -->
+        <div class="shape-selector">
+            <!-- 三角形系列 -->
+            <button class="shape-btn active" data-shape="triangle1">三角形1</button>
+            <button class="shape-btn" data-shape="triangle2">三角形2</button>
+            <button class="shape-btn" data-shape="triangle3">三角形3</button>
+            <button class="shape-btn" data-shape="triangle4">三角形4</button>
+            <button class="shape-btn" data-shape="triangle5">三角形5</button>
+            
+            <!-- 正方形系列 -->
+            <button class="shape-btn" data-shape="square">正方形</button>
+            <button class="shape-btn" data-shape="square1">正方形1</button>
+            <button class="shape-btn" data-shape="square2">正方形2</button>
+            
+            <!-- 六边形系列 -->
+            <button class="shape-btn" data-shape="hexagon1">六边形1</button>
+            <button class="shape-btn" data-shape="hexagon2">六边形2</button>
+            <button class="shape-btn" data-shape="hexagon3">六边形3</button>
+        </div>
+
+        <div class="controls">
+            <div class="color-palette">
+                <!-- 颜色面板 -->
+                <button class="color-btn active" style="background-color: #ffffff;"></button>
+                <button class="color-btn" style="background-color: #e74c3c;"></button>
+                <button class="color-btn" style="background-color: #3498db;"></button>
+                <button class="color-btn" style="background-color: #2ecc71;"></button>
+                <button class="color-btn" style="background-color: #f1c40f;"></button>
+                <button class="color-btn" style="background-color: #9b59b6;"></button>
+                <button class="color-btn" style="background-color: #e67e22;"></button>
+                <button class="color-btn" style="background-color: #1abc9c;"></button>
+                <button class="color-btn" style="background-color: #34495e;"></button>
+                <button class="color-btn" style="background-color: #f39c12;"></button>
+                <button class="color-btn" style="background-color: #8e44ad;"></button>
+                <button class="color-btn" style="background-color: #c0392b;"></button>
+            </div>
+
+            <!-- 工具按钮组 -->
+            <div class="tool-group">
+                <div class="brush-size">
+                    <label>画笔大小：</label>
+                    <input type="range" id="brushSize" min="5" max="25" value="10">
+                </div>
+                <button class="eraser-btn" id="eraserBtn">橡皮擦</button>
+                <button class="restart-btn" id="restartBtn">重新开始</button>
+            </div>
+        </div>
+
+        <div class="canvas-container">
+            <canvas id="coloringCanvas"></canvas>
+        </div>
+
+        <p class="hint">选择几何图形和颜色，点击/拖动画布涂色 | 橡皮擦可擦除涂色 | 游戏时间：5分钟</p>
+    </div>
+
+    <!-- 游戏结束模态框 -->
+    <div class="modal" id="gameOverModal">
+        <div class="modal-content">
+            <h2>游戏结束！⏰</h2>
+            <p>你在5分钟内完成了<span id="completedShapes">0</span>个几何图形的涂色</p>
+            <button class="modal-btn" id="modalRestartBtn">再来一局</button>
+        </div>
+    </div>
+
+    <script>
+        // 核心变量
+        const canvas = document.getElementById('coloringCanvas');
+        const ctx = canvas.getContext('2d');
+        const colorButtons = document.querySelectorAll('.color-btn');
+        const shapeButtons = document.querySelectorAll('.shape-btn');
+        const eraserButton = document.getElementById('eraserBtn');
+        const restartButton = document.getElementById('restartBtn');
+        const modalRestartButton = document.getElementById('modalRestartBtn');
+        const brushSizeInput = document.getElementById('brushSize');
+        const timerElement = document.getElementById('timer');
+        const gameOverModal = document.getElementById('gameOverModal');
+        const completedShapesElement = document.getElementById('completedShapes');
+
+        // 游戏状态变量
+        let selectedColor = '#ffffff';
+        let isDrawing = false;
+        let isErasing = false;
+        let currentShape = 'triangle1';
+        let brushSize = 10;
+        let timeRemaining = 5 * 60; // 5分钟（秒）
+        let timerInterval;
+        let coloredPixels = 0;
+        let totalPixels = 0;
+        let completedShapes = 0;
+
+        // 初始化画布尺寸
+        function initCanvasSize() {
+            const container = canvas.parentElement;
+            canvas.width = container.offsetWidth;
+            canvas.height = container.offsetHeight;
+            drawCurrentShape();
+            calculateTotalPixels();
+        }
+
+        // 绘制当前选中的几何图形
+        function drawCurrentShape() {
+            const width = canvas.width;
+            const height = canvas.height;
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const size = Math.min(width, height) * 0.4; // 图形基础尺寸
+
+            // 清空画布
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, width, height);
+            ctx.strokeStyle = '#2c3e50';
+            ctx.lineWidth = 3;
+            ctx.fillStyle = '#2c3e50';
+            ctx.font = '16px Arial';
+
+            // 根据选中的图形绘制不同的几何图形
+            switch (currentShape) {
+                // 三角形系列
+                case 'triangle1':
+                    drawTriangle1(centerX, centerY, size);
+                    break;
+                case 'triangle2':
+                    drawTriangle2(centerX, centerY, size);
+                    break;
+                case 'triangle3':
+                    drawTriangle3(centerX, centerY, size);
+                    break;
+                case 'triangle4':
+                    drawTriangle4(centerX, centerY, size);
+                    break;
+                case 'triangle5':
+                    drawTriangle5(centerX, centerY, size);
+                    break;
+                
+                // 正方形系列
+                case 'square':
+                    drawSquare(centerX, centerY, size);
+                    break;
+                case 'square1':
+                    drawSquare1(centerX, centerY, size);
+                    break;
+                case 'square2':
+                    drawSquare2(centerX, centerY, size);
+                    break;
+                
+                // 六边形系列
+                case 'hexagon1':
+                    drawHexagon1(centerX, centerY, size);
+                    break;
+                case 'hexagon2':
+                    drawHexagon2(centerX, centerY, size);
+                    break;
+                case 'hexagon3':
+                    drawHexagon3(centerX, centerY, size);
+                    break;
+            }
+        }
+
+        // 1. 三角形系列绘制函数
+        // 基础三角形（无内部结构）
+        function drawTriangle1(x, y, size) {
+            ctx.beginPath();
+            ctx.moveTo(x, y - size);
+            ctx.lineTo(x - size * Math.cos(Math.PI/6), y + size * Math.sin(Math.PI/6));
+            ctx.lineTo(x + size * Math.cos(Math.PI/6), y + size * Math.sin(Math.PI/6));
+            ctx.closePath();
+            ctx.stroke();
+            ctx.fillText('1', x, y);
+        }
+
+        // 三角形（中线分割）
+        function drawTriangle2(x, y, size) {
+            // 外轮廓
+            ctx.beginPath();
+            ctx.moveTo(x, y - size);
+            ctx.lineTo(x - size * Math.cos(Math.PI/6), y + size * Math.sin(Math.PI/6));
+            ctx.lineTo(x + size * Math.cos(Math.PI/6), y + size * Math.sin(Math.PI/6));
+            ctx.closePath();
+            ctx.stroke();
+            
+            // 中线
+            ctx.beginPath();
+            ctx.moveTo(x, y - size);
+            ctx.lineTo(x, y + size * Math.sin(Math.PI/6));
+            ctx.stroke();
+            
+            ctx.fillText('1', x - size/3, y);
+            ctx.fillText('2', x + size/3, y);
+        }
+
+        // 三角形（角平分线分割）
+        function drawTriangle3(x, y, size) {
+            // 外轮廓
+            ctx.beginPath();
+            ctx.moveTo(x, y - size);
+            ctx.lineTo(x - size * Math.cos(Math.PI/6), y + size * Math.sin(Math.PI/6));
+            ctx.lineTo(x + size * Math.cos(Math.PI/6), y + size * Math.sin(Math.PI/6));
+            ctx.closePath();
+            ctx.stroke();
+            
+            // 角平分线
+            const centerX = x;
+            const centerY = y + size * Math.sin(Math.PI/6) / 3;
+            ctx.beginPath();
+            ctx.moveTo(x, y - size);
+            ctx.lineTo(centerX, centerY);
+            ctx.moveTo(x - size * Math.cos(Math.PI/6), y + size * Math.sin(Math.PI/6));
+            ctx.lineTo(centerX, centerY);
+            ctx.moveTo(x + size * Math.cos(Math.PI/6), y + size * Math.sin(Math.PI/6));
+            ctx.lineTo(centerX, centerY);
+            ctx.stroke();
+            
+            ctx.fillText('1', x - size/3, y - size/3);
+            ctx.fillText('2', x - size/3, y + size/3);
+            ctx.fillText('3', x + size/3, y + size/3);
+        }
+
+        // 三角形（内切圆）
+        function drawTriangle4(x, y, size) {
+            // 外轮廓
+            ctx.beginPath();
+            ctx.moveTo(x, y - size);
+            ctx.lineTo(x - size * Math.cos(Math.PI/6), y + size * Math.sin(Math.PI/6));
+            ctx.lineTo(x + size * Math.cos(Math.PI/6), y + size * Math.sin(Math.PI/6));
+            ctx.closePath();
+            ctx.stroke();
+            
+            // 内切圆
+            const inradius = size * Math.sin(Math.PI/6) / 2;
+            ctx.beginPath();
+            ctx.arc(x, y, inradius, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            ctx.fillText('1', x, y - size/2);
+            ctx.fillText('2', x, y);
+        }
+
+        // 三角形（网格结构）
+        function drawTriangle5(x, y, size) {
+            // 外轮廓
+            ctx.beginPath();
+            ctx.moveTo(x, y - size);
+            ctx.lineTo(x - size * Math.cos(Math.PI/6), y + size * Math.sin(Math.PI/6));
+            ctx.lineTo(x + size * Math.cos(Math.PI/6), y + size * Math.sin(Math.PI/6));
+            ctx.closePath();
+            ctx.stroke();
+            
+            // 网格线
+            for (let i = 1; i < 3; i++) {
+                const step = size / 3;
+                const yPos = y - size + i * step * 2;
+                const width = step * i * Math.cos(Math.PI/6) * 2;
+                
+                ctx.beginPath();
+                ctx.moveTo(x - width/2, yPos);
+                ctx.lineTo(x + width/2, yPos);
+                ctx.stroke();
+            }
+            
+            ctx.fillText('1', x, y - size/2);
+            ctx.fillText('2', x, y);
+            ctx.fillText('3', x, y + size/2);
+        }
+
+        // 2. 正方形系列绘制函数
+        // 基础正方形（无内部结构）
+        function drawSquare(x, y, size) {
+            ctx.beginPath();
+            ctx.rect(x - size, y - size, size * 2, size * 2);
+            ctx.stroke();
+            ctx.fillText('1', x, y);
+        }
+
+        // 正方形（对角线分割）
+        function drawSquare1(x, y, size) {
+            // 外轮廓
+            ctx.beginPath();
+            ctx.rect(x - size, y - size, size * 2, size * 2);
+            ctx.stroke();
+            
+            // 对角线
+            ctx.beginPath();
+            ctx.moveTo(x - size, y - size);
+            ctx.lineTo(x + size, y + size);
+            ctx.moveTo(x + size, y - size);
+            ctx.lineTo(x - size, y + size);
+            ctx.stroke();
+            
+            ctx.fillText('1', x - size/2, y - size/2);
+            ctx.fillText('2', x + size/2, y - size/2);
+            ctx.fillText('3', x - size/2, y + size/2);
+            ctx.fillText('4', x + size/2, y + size/2);
+        }
+
+        // 正方形（九宫格）
+        function drawSquare2(x, y, size) {
+            // 外轮廓
+            ctx.beginPath();
+            ctx.rect(x - size, y - size, size * 2, size * 2);
+            ctx.stroke();
+            
+            // 九宫格线
+            ctx.beginPath();
+            ctx.moveTo(x - size/3 * 2, y - size);
+            ctx.lineTo(x - size/3 * 2, y + size);
+            ctx.moveTo(x + size/3 * 2, y - size);
+            ctx.lineTo(x + size/3 * 2, y + size);
+            ctx.moveTo(x - size, y - size/3 * 2);
+            ctx.lineTo(x + size, y - size/3 * 2);
+            ctx.moveTo(x - size, y + size/3 * 2);
+            ctx.lineTo(x + size, y + size/3 * 2);
+            ctx.stroke();
+            
+            // 数字标记
+            let count = 1;
+            for (let i = -1; i <= 1; i++) {
+                for (let j = -1; j <= 1; j++) {
+                    ctx.fillText(count++, x + i * size/2, y + j * size/2);
+                }
+            }
+        }
+
+        // 3. 六边形系列绘制函数
+        // 基础六边形（无内部结构）
+        function drawHexagon1(x, y, size) {
+            ctx.beginPath();
+            for (let i = 0; i < 6; i++) {
+                const angle = Math.PI/2 + i * Math.PI/3;
+                const px = x + size * Math.cos(angle);
+                const py = y + size * Math.sin(angle);
+                i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+            }
+            ctx.closePath();
+            ctx.stroke();
+            ctx.fillText('1', x, y);
+        }
+
+        // 六边形（中心点辐射）
+        function drawHexagon2(x, y, size) {
+            // 外轮廓
+            ctx.beginPath();
+            for (let i = 0; i < 6; i++) {
+                const angle = Math.PI/2 + i * Math.PI/3;
+                const px = x + size * Math.cos(angle);
+                const py = y + size * Math.sin(angle);
+                i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+            }
+            ctx.closePath();
+            ctx.stroke();
+            
+            // 辐射线
+            for (let i = 0; i < 6; i++) {
+                const angle = Math.PI/2 + i * Math.PI/3;
+                const px = x + size * Math.cos(angle);
+                const py = y + size * Math.sin(angle);
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(px, py);
+                ctx.stroke();
+            }
+            
+            // 数字标记
+            for (let i = 0; i < 6; i++) {
+                const angle = Math.PI/2 + (i + 0.5) * Math.PI/3;
+                const px = x + size/2 * Math.cos(angle);
+                const py = y + size/2 * Math.sin(angle);
+                ctx.fillText(i + 1, px, py);
+            }
+        }
+
+        // 六边形（内部六边形）
+        function drawHexagon3(x, y, size) {
+            // 外轮廓
+            ctx.beginPath();
+            for (let i = 0; i < 6; i++) {
+                const angle = Math.PI/2 + i * Math.PI/3;
+                const px = x + size * Math.cos(angle);
+                const py = y + size * Math.sin(angle);
+                i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+            }
+            ctx.closePath();
+            ctx.stroke();
+            
+            // 内部六边形
+            ctx.beginPath();
+            for (let i = 0; i < 6; i++) {
+                const angle = Math.PI/2 + i * Math.PI/3;
+                const px = x + size/2 * Math.cos(angle);
+                const py = y + size/2 * Math.sin(angle);
+                i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+            }
+            ctx.closePath();
+            ctx.stroke();
+            
+            // 连接顶点
+            for (let i = 0; i < 6; i++) {
+                const angle1 = Math.PI/2 + i * Math.PI/3;
+                const angle2 = Math.PI/2 + (i + 1) * Math.PI/3;
+                
+                const px1 = x + size * Math.cos(angle1);
+                const py1 = y + size * Math.sin(angle1);
+                const px2 = x + size/2 * Math.cos(angle2);
+                const py2 = y + size/2 * Math.sin(angle2);
+                
+                ctx.beginPath();
+                ctx.moveTo(px1, py1);
+                ctx.lineTo(px2, py2);
+                ctx.stroke();
+            }
+            
+            ctx.fillText('1', x, y - size/2);
+            ctx.fillText('2', x - size/2, y);
+            ctx.fillText('3', x, y + size/2);
+            ctx.fillText('4', x + size/2, y);
+            ctx.fillText('5', x, y);
+        }
+
+        // 计算当前图形的总像素数（用于统计完成度）
+        function calculateTotalPixels() {
+            const width = canvas.width;
+            const height = canvas.height;
+            totalPixels = width * height * 0.3; // 估算图形区域像素数
+            coloredPixels = 0;
+        }
+
+        // 更新计时器显示
+        function updateTimer() {
+            const minutes = Math.floor(timeRemaining / 60);
+            const seconds = timeRemaining % 60;
+            timerElement.textContent = `剩余时间：${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            
+            if (timeRemaining <= 0) {
+                clearInterval(timerInterval);
+                endGame();
+            } else {
+                timeRemaining--;
+            }
+        }
+
+        // 开始计时器
+        function startTimer() {
+            clearInterval(timerInterval);
+            timeRemaining = 5 * 60;
+            updateTimer();
+            timerInterval = setInterval(updateTimer, 1000);
+        }
+
+        // 结束游戏
+        function endGame() {
+            // 计算完成的图形数量（简单估算）
+            completedShapes = Math.floor(coloredPixels / totalPixels);
+            completedShapesElement.textContent = completedShapes;
+            
+            // 显示模态框
+            gameOverModal.style.display = 'flex';
+        }
+
+        // 重置游戏
+        function resetGame() {
+            // 重置画布
+            initCanvasSize();
+            
+            // 重置状态
+            selectedColor = '#ffffff';
+            isErasing = false;
+            coloredPixels = 0;
+            completedShapes = 0;
+            
+            // 重置UI状态
+            colorButtons.forEach(btn => btn.classList.remove('active'));
+            colorButtons[0].classList.add('active');
+            eraserButton.classList.remove('active');
+            
+            // 重启计时器
+            startTimer();
+            
+            // 隐藏模态框
+            gameOverModal.style.display = 'none';
+        }
+
+        // 颜色选择事件
+        colorButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (isErasing) {
+                    isErasing = false;
+                    eraserButton.classList.remove('active');
+                }
+                colorButtons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                selectedColor = getComputedStyle(btn).backgroundColor;
+            });
+        });
+
+        // 图形选择事件
+        shapeButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                shapeButtons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentShape = btn.dataset.shape;
+                initCanvasSize();
+            });
+        });
+
+        // 橡皮擦功能事件
+        eraserButton.addEventListener('click', () => {
+            isErasing = !isErasing;
+            if (isErasing) {
+                eraserButton.classList.add('active');
+                colorButtons.forEach(b => b.classList.remove('active'));
+            } else {
+                eraserButton.classList.remove('active');
+                colorButtons[0].classList.add('active');
+                selectedColor = getComputedStyle(colorButtons[0]).backgroundColor;
+            }
+        });
+
+        // 画笔大小调节
+        brushSizeInput.addEventListener('input', () => {
+            brushSize = parseInt(brushSizeInput.value);
+        });
+
+        // 重新开始按钮事件
+        restartButton.addEventListener('click', resetGame);
+        modalRestartButton.addEventListener('click', resetGame);
+
+        // 绘制/擦除函数
+        function startDrawing(e) {
+            isDrawing = true;
+            drawAtPosition(e);
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+            ctx.beginPath();
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            drawAtPosition(e);
+        }
+
+        function drawAtPosition(e) {
+            // 获取画布坐标
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX || e.touches[0].clientX) - rect.left;
+            const y = (e.clientY || e.touches[0].clientY) - rect.top;
+
+            // 适配缩放
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const realX = Math.floor(x * scaleX);
+            const realY = Math.floor(y * scaleY);
+
+            // 绘制/擦除
+            ctx.fillStyle = isErasing ? '#ffffff' : selectedColor;
+            ctx.beginPath();
+            ctx.arc(realX, realY, brushSize, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 统计涂色像素（简单估算）
+            if (!isErasing && selectedColor !== '#ffffff') {
+                coloredPixels += brushSize * brushSize;
+            }
+        }
+
+        // 绑定鼠标/触摸事件
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseleave', stopDrawing);
+        canvas.addEventListener('mousemove', draw);
+
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            startDrawing(e);
+        });
+        canvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            stopDrawing();
+        });
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            draw(e);
+        });
+
+        // 初始化
+        window.addEventListener('load', () => {
+            brushSize = parseInt(brushSizeInput.value);
+            initCanvasSize();
+            startTimer();
+        });
+        window.addEventListener('resize', initCanvasSize);
+    </script>
+</body>
+</html>
